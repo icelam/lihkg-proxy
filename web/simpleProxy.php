@@ -5,6 +5,7 @@ class SimpleProxy {
   public function __construct($protocol, $originalHost,$cookieFolder,$cookieFile) {
     $this->originalDomain = $protocol . $originalHost;
     $this->originalHost = $originalHost;
+    $this->originalProtocol = $protocol;
 
     $this->proxyDomain = ($_SERVER["HTTPS"] == "on" ? "https://" : "http://") . $_SERVER["HTTP_HOST"];
     $this->proxyHost = $_SERVER["HTTP_HOST"];
@@ -19,13 +20,13 @@ class SimpleProxy {
     }
   }
 
-  private function getAndReplaceHeaders($blacklist) {
+  private function getAndReplaceHeaders($originalHost, $blacklist) {
     $currentRequestHeader = getallheaders();
     $newHeader = array();
 
     foreach ($currentRequestHeader as $name => $value) {
       if(!in_array($name, $blacklist)) {
-        $processedVal = str_replace($this->proxyHost, $this->originalHost, $value);
+        $processedVal = str_replace($this->proxyHost, $originalHost, $value);
         array_push($newHeader, "$name: " . $processedVal);
       }
     }
@@ -105,8 +106,15 @@ class SimpleProxy {
   }
 
   public function start() {
-    $url = $this->originalDomain . $_SERVER["REQUEST_URI"];
-    $requestHeaders = $this->getAndReplaceHeaders(["Cookie", "X-Real-Ip", "X-Accel-Internal", "Connection", "Accept-Encoding"]);
+    $originalHost = strpos($_SERVER["REQUEST_URI"], '/cdn-assets/') === 0 
+      ? "cdn." . $this->originalHost
+      : $this->originalHost;
+
+    $url = strpos($_SERVER["REQUEST_URI"], '/cdn-assets/') === 0 
+      ? $this->originalProtocol . $originalHost . str_replace("/cdn-assets", "", $_SERVER["REQUEST_URI"])
+      : $this->originalProtocol . $originalHost . $_SERVER["REQUEST_URI"];
+
+    $requestHeaders = $this->getAndReplaceHeaders($originalHost, ["Cookie", "X-Real-Ip", "X-Accel-Internal", "Connection", "Accept-Encoding"]);
 
     return $this->scrapWebpage($url, $requestHeaders);
   }

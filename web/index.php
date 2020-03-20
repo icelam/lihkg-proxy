@@ -27,6 +27,7 @@ $customBody = str_replace('m=function(){var e=Array.prototype.slice.call(argumen
 
 // Implemet CDN / assets domain later in SimpleProxy
 $customBody = str_replace("i.lih.kg", $_SERVER["HTTP_HOST"], $customBody);
+$customBody = str_replace("cdn." . $_SERVER["HTTP_HOST"], $_SERVER["HTTP_HOST"] . "/cdn-assets", $customBody);
 
 // Support short domain
 $customBody = str_replace("lih.kg", $_SERVER["HTTP_HOST"] . "/thread", $customBody);
